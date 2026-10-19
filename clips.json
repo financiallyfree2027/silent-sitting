@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "note": "Cut points (seconds) come from silence detection on anapana.mp3 and Whisper timestamps on group.mp3. Listen to each clip once and nudge 'from'/'to' if a word is clipped, then re-run tools/cut_clips.py. 'duration' and 'bytes' are filled in by that script.",
+  "clips": {
+    "chant": {
+      "title": "Opening chanting",
+      "source": "group.mp3",
+      "from": 0,
+      "to": 139.4,
+      "file": "audio/opening-chanting.mp3",
+      "duration": 139.44,
+      "bytes": 1115786
+    },
+    "anapanaOpen": {
+      "title": "Anapana instructions",
+      "source": "anapana.mp3",
+      "from": 0,
+      "to": 261.6,
+      "file": "audio/anapana-open.mp3",
+      "duration": 261.64,
+      "bytes": 2093392
+    },
+    "anapanaClose": {
+      "title": "Bhavatu sabba mangalam",
+      "source": "anapana.mp3",
+      "from": 560.4,
+      "to": 595.8,
+      "file": "audio/anapana-close.mp3",
+      "duration": 35.45,
+      "bytes": 283838
+    },
+    "vipassanaOpen": {
+      "title": "Vipassana instructions",
+      "source": "group.mp3",
+      "from": 680.9,
+      "to": 952.0,
+      "file": "audio/vipassana-open.mp3",
+      "duration": 271.15,
+      "bytes": 2169461
+    },
+    "vipassanaClose": {
+      "title": "Closing chanting",
+      "source": "group.mp3",
+      "from": 3122.0,
+      "to": 3327.8,
+      "file": "audio/vipassana-close.mp3",
+      "duration": 205.84,
+      "bytes": 1647012
+    },
+    "metta": {
+      "title": "Metta",
+      "source": "group.mp3",
+      "from": 3358.0,
+      "to": 3555.0,
+      "file": "audio/metta.mp3",
+      "duration": 197.04,
+      "bytes": 1576586
+    },
+    "mangal": {
+      "title": "Bhavatu sabba mangalam",
+      "source": "group.mp3",
+      "from": 3327.8,
+      "to": 3357.6,
+      "file": "audio/mangal.mp3",
+      "duration": 29.83,
+      "bytes": 238907
+    }
+  }
+}

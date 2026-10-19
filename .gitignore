@@ -1,0 +1,6 @@
+tools/source/
+audio/*.mp3
+Open Silent Sitting.html
+tools/.fix_need.done
+.DS_Store
+__pycache__/
