@@ -177,9 +177,8 @@
       for (const k of neededKeys()) await loadBuffer(k);
     } catch (e) {
       $("play").classList.remove("busy"); $("play").disabled = false; $("playLabel").textContent = "Begin";
-      $("next").textContent = navigator.onLine
-        ? "The recordings aren't saved on this device yet. Add them in the offline card below."
-        : "You're offline and the recordings aren't saved yet. Connect once and tap Download for offline use.";
+      $("next").innerHTML = 'The recordings aren\'t on this device yet. <button class="inlink" id="goAdd2">Add recordings</button>';
+      $("goAdd2").onclick = showAdd;
       return;
     }
     P = plan(); buildArcs(); renderPlan();
@@ -400,7 +399,10 @@
     }
     $("rm").hidden = !(st && Object.values(st).some(Boolean));
     $("offbadge").classList.toggle("ok", !!all);
-    $("offbadgeText").textContent = all ? "Works offline" : navigator.onLine ? "Needs internet" : "Offline · audio not saved";
+    $("offbadgeText").textContent = all ? "Works offline" : noSiteAudio ? "Add recordings ↓" : navigator.onLine ? "Saving recordings…" : "Recordings not saved";
+    $("offbadge").classList.toggle("act", !all);
+    if (!all && noSiteAudio && !running) $("next").innerHTML = 'First, add your recordings: <button class="inlink" id="goAdd">Add recordings</button>';
+    const ga = $("goAdd"); if (ga) ga.onclick = showAdd;
   }
   async function download() {
     store.set("noAutoDownload", false);
@@ -425,10 +427,20 @@
       await renderOffline();
     } catch (e) {
       await renderOffline();
+      if (e.message === "not-on-site") noSiteAudio = true;
+      await renderOffline();
       $("dlText").textContent = e.message === "not-on-site" ? "Recordings aren't on this site. Add them below"
         : navigator.onLine ? "Download failed. Try again" : "You're offline. Connect and try again";
       dl.disabled = e.message === "not-on-site";
     }
+  }
+  /* Bring the offline card into view and highlight the add button. */
+  let noSiteAudio = false;
+  function showAdd() {
+    const card = document.querySelector(".offline");
+    card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    const b = document.querySelector(".importbtn");
+    b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");
   }
   /* Add recordings from this device: for copies kept privately (the public site carries no audio).
      Picked files are matched to clips by file name and saved exactly like a download. */
@@ -538,6 +550,7 @@
     sk.addEventListener("pointerup", () => { if (seeking) { seeking = false; seekTo(+sk.value); } });
     $("dl").onclick = download;
     $("rm").onclick = removeAudio;
+    $("offbadge").onclick = () => { if ($("offbadge").classList.contains("act")) showAdd(); };
     $("importFiles").onchange = e => { if (e.target.files.length) importFiles([...e.target.files]); e.target.value = ""; };
     window.addEventListener("online", renderOffline);
     window.addEventListener("offline", renderOffline);
