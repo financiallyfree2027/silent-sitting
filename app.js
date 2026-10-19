@@ -34,8 +34,8 @@
     AVM: { dev: "आनापान → विपश्यना → मैत्री", hint: "Breath, then sensations, then close with metta for all beings." },
   };
 
-  const S = Object.assign({ tech: "A", min: 60, chant: true, dark: false },
-    store.get("settings-v2", {}));
+  const S = Object.assign({ tech: "A", min: 60, chant: true, dark: true },
+    store.get("settings-v3", {}));
   let CLIPS = {};
   let P = null;
 
@@ -177,8 +177,9 @@
       for (const k of neededKeys()) await loadBuffer(k);
     } catch (e) {
       $("play").classList.remove("busy"); $("play").disabled = false; $("playLabel").textContent = "Begin";
-      $("next").innerHTML = 'The recordings aren\'t on this device yet. <button class="inlink" id="goAdd2">Add recordings</button>';
-      $("goAdd2").onclick = showAdd;
+      $("next").textContent = noSiteAudio ? "The recordings aren't on this site, so there is nothing to play yet."
+        : navigator.onLine ? "Couldn't load the recordings. Tap the badge above to try saving them again."
+        : "The recordings aren't saved on this device yet. Open the app once with internet.";
       return;
     }
     P = plan(); buildArcs(); renderPlan();
@@ -322,7 +323,7 @@
       `<li data-i="${i}" class="${s.type}"><span class="t">${fmt(s.start)}</span><span class="pd"></span><span>${segName(s)}</span><span class="l">${fmt(s.len)}</span></li>`).join("");
   }
   function render() {
-    store.set("settings-v2", S);
+    store.set("settings-v3", S);
     const np = plan();
     // During a sitting, a change that doesn't fit keeps the current plan and shows why.
     const apply = !running || !np.bad, changed = running && apply;
@@ -354,14 +355,17 @@
     draw();
   }
   function setTheme(dark) {
-    S.dark = dark; store.set("settings-v2", S);
+    S.dark = dark; store.set("settings-v3", S);
     document.documentElement.classList.toggle("dark", dark);
     $("thDark").setAttribute("aria-pressed", dark); $("thLight").setAttribute("aria-pressed", !dark);
     $("themeColor").setAttribute("content", dark ? "#111513" : "#EDEFEA");
     if (typeof learnLoaded !== "undefined" && learnLoaded) postSection(section);
   }
 
-  /* ---------------- offline download ---------------- */
+  /* ---------------- offline audio ----------------
+   The recordings save themselves into the browser on the first online visit. Progress and
+   status show in the small badge on the player; tapping the badge retries if a save failed. */
+  let noSiteAudio = false, saving = false;
   const allFiles = () => Object.values(CLIPS);
   const totalBytes = () => allFiles().reduce((a, c) => a + c.bytes, 0);
   async function savedStatus() {
@@ -374,41 +378,28 @@
     }
     return out;
   }
+  function badge(text, ok, act) {
+    $("offbadgeText").textContent = text;
+    $("offbadge").classList.toggle("ok", !!ok);
+    $("offbadge").classList.toggle("act", !!act);
+  }
   async function renderOffline() {
-    if (window.__STANDALONE) { // the single-file test copy carries every recording inside it
-      $("files").innerHTML = Object.values(CLIPS).map(c => `<li class="got"><span>${c.title}</span><span>${mb(c.bytes)}</span></li>`).join("");
-      const dl = $("dl"); dl.disabled = true; dl.classList.add("done");
-      $("dlText").textContent = "Included in this test file"; $("dlSize").textContent = mb(totalBytes());
-      $("rm").hidden = true; $("offbadge").classList.add("ok"); $("offbadgeText").textContent = "Works offline"; return;
-    }
+    if (window.__STANDALONE) { badge("Works offline", true); return; }
+    if (saving) return;
     const st = await savedStatus().catch(() => null);
     const all = st && Object.values(st).every(Boolean);
-    $("files").innerHTML = Object.entries(CLIPS).map(([k, c]) =>
-      `<li class="${st && st[k] ? "got" : ""}"><span>${c.title}</span><span>${mb(c.bytes)}</span></li>`).join("");
-    $("meter").hidden = true;
-    const dl = $("dl");
-    if (!st) {
-      dl.disabled = true; $("dlText").textContent = "Offline saving needs https"; $("dlSize").textContent = "";
-    } else if (all) {
-      // stays tappable, so anyone can fetch the recordings again if something looks wrong
-      dl.disabled = false; dl.classList.add("done"); $("dlText").textContent = "Saved · Download again"; $("dlSize").textContent = mb(totalBytes());
-    } else {
-      const some = Object.values(st).some(Boolean);
-      dl.disabled = false; dl.classList.remove("done");
-      $("dlText").textContent = some ? "Update offline audio" : "Download for offline use"; $("dlSize").textContent = mb(totalBytes());
-    }
-    $("rm").hidden = !(st && Object.values(st).some(Boolean));
-    $("offbadge").classList.toggle("ok", !!all);
-    $("offbadgeText").textContent = all ? "Works offline" : noSiteAudio ? "Add recordings ↓" : navigator.onLine ? "Saving recordings…" : "Recordings not saved";
-    $("offbadge").classList.toggle("act", !all);
-    if (!all && noSiteAudio && !running) $("next").innerHTML = 'First, add your recordings: <button class="inlink" id="goAdd">Add recordings</button>';
-    const ga = $("goAdd"); if (ga) ga.onclick = showAdd;
+    if (!st) badge("Online only");
+    else if (all) badge("Works offline", true);
+    else if (noSiteAudio) badge("Audio not on site");
+    else if (!navigator.onLine) badge("Connect once to save audio");
+    else badge("Save for offline", false, true);
   }
   async function download() {
-    store.set("noAutoDownload", false);
-    const dl = $("dl"); dl.disabled = true; $("meter").hidden = false;
+    if (saving || !("caches" in window)) return;
+    saving = true;
     const total = totalBytes(); let got = 0;
-    const show = () => { const p = Math.min(100, got / total * 100); $("meterBar").style.width = p + "%"; $("dlText").textContent = `Downloading… ${mb(got)}`; $("dlSize").textContent = Math.round(p) + "%"; };
+    const show = () => badge(`Saving audio ${Math.min(99, Math.round(got / total * 100))}%`);
+    show();
     try {
       try { await navigator.storage?.persist?.(); } catch (e) {}
       const cache = await caches.open(AUDIO_CACHE);
@@ -420,56 +411,22 @@
         if (res.body && res.body.getReader) {
           const reader = res.body.getReader();
           for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; show(); }
-        } else { const b = await res.arrayBuffer(); chunks.push(new Uint8Array(b)); got += b.byteLength; show(); }
+        } else { const buf = await res.arrayBuffer(); chunks.push(new Uint8Array(buf)); got += buf.byteLength; show(); }
         const blob = new Blob(chunks, { type: "audio/mpeg" });
         await cache.put(abs(c.file), new Response(blob, { headers: { "Content-Type": "audio/mpeg", "Content-Length": String(blob.size), "X-Clip-Bytes": String(c.bytes) } }));
       }
-      await renderOffline();
     } catch (e) {
-      await renderOffline();
       if (e.message === "not-on-site") noSiteAudio = true;
-      await renderOffline();
-      $("dlText").textContent = e.message === "not-on-site" ? "Recordings aren't on this site. Add them below"
-        : navigator.onLine ? "Download failed. Try again" : "You're offline. Connect and try again";
-      dl.disabled = e.message === "not-on-site";
     }
-  }
-  /* Bring the offline card into view and highlight the add button. */
-  let noSiteAudio = false;
-  function showAdd() {
-    const card = document.querySelector(".offline");
-    card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
-    const b = document.querySelector(".importbtn");
-    b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");
-  }
-  /* Add recordings from this device: for copies kept privately (the public site carries no audio).
-     Picked files are matched to clips by file name and saved exactly like a download. */
-  async function importFiles(list) {
-    const byName = {}; Object.values(CLIPS).forEach(c => { byName[c.file.split("/").pop().toLowerCase()] = c; });
-    const cache = await caches.open(AUDIO_CACHE);
-    let added = 0; const skipped = [];
-    for (const f of list) {
-      const c = byName[f.name.toLowerCase()];
-      if (!c) { skipped.push(f.name); continue; }
-      await cache.put(abs(c.file), new Response(f, { headers: { "Content-Type": "audio/mpeg", "Content-Length": String(f.size), "X-Clip-Bytes": String(c.bytes) } }));
-      buffers.delete(Object.keys(CLIPS).find(k => CLIPS[k] === c));
-      added++;
-    }
-    try { await navigator.storage?.persist?.(); } catch (e) {}
+    saving = false;
     await renderOffline();
-    const missing = Object.values(CLIPS).length - (await savedStatus().then(st => Object.values(st).filter(Boolean).length));
-    $("importNote").textContent = `Added ${added} recording${added === 1 ? "" : "s"}.`
-      + (missing ? ` ${missing} still missing.` : " Everything is saved for offline use.")
-      + (skipped.length ? ` Not recognised: ${skipped.join(", ")}.` : "");
-    $("importNote").hidden = false;
   }
-  // Save the recordings in the background on the first online visit, so the next visit works offline.
+  // Save the recordings in the background whenever some are missing and the phone is online.
   async function autoDownload() {
-    if (!("caches" in window) || !navigator.onLine || store.get("noAutoDownload", false)) return;
+    if (!("caches" in window) || !navigator.onLine) return;
     const st = await savedStatus().catch(() => null);
     if (st && !Object.values(st).every(Boolean)) download();
   }
-  async function removeAudio() { store.set("noAutoDownload", true); try { await caches.delete(AUDIO_CACHE); } catch (e) {} buffers.clear(); renderOffline(); }
 
   /* ---------------- menu and the learn view ---------------- */
   const SECTIONS = { concept: "Concept", vp: "Vipassana", hi: "History", gu: "Gurus", tt: "Timetable", fe: "Fees & centres" };
@@ -548,10 +505,7 @@
     sk.addEventListener("input", () => { seeking = true; paintSeek(); $("time").textContent = fmt(P.T - +sk.value); });
     sk.addEventListener("change", () => { seeking = false; seekTo(+sk.value); });
     sk.addEventListener("pointerup", () => { if (seeking) { seeking = false; seekTo(+sk.value); } });
-    $("dl").onclick = download;
-    $("rm").onclick = removeAudio;
-    $("offbadge").onclick = () => { if ($("offbadge").classList.contains("act")) showAdd(); };
-    $("importFiles").onchange = e => { if (e.target.files.length) importFiles([...e.target.files]); e.target.value = ""; };
+    $("offbadge").onclick = () => { if ($("offbadge").classList.contains("act")) download(); };
     window.addEventListener("online", renderOffline);
     window.addEventListener("offline", renderOffline);
     document.addEventListener("keydown", e => {
