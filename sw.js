@@ -2,7 +2,7 @@
  * The recordings live in a separate cache that the app fills when the person taps
  * "Download for offline use", so they survive app updates.
  * Bump CACHE_VERSION whenever you change any app file. */
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v11";
 const SHELL_CACHE = "sitting-shell-" + CACHE_VERSION;
 const AUDIO_CACHE = "sitting-audio-v1";
 const SHELL = [
@@ -19,7 +19,8 @@ const SHELL = [
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's own HTTP cache, so a new version never mixes in an old file
+  e.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -58,7 +59,7 @@ self.addEventListener("fetch", e => {
       const nav = req.mode === "navigate";
       const key = nav && (url.pathname.endsWith("/") || !/\.html$/.test(url.pathname)) ? "index.html" : req;
       const hit = await cache.match(key, { ignoreSearch: true });
-      const net = fetch(req).then(res => { if (res.ok) cache.put(key, res.clone()); return res; }).catch(() => null);
+      const net = fetch(req, { cache: "no-cache" }).then(res => { if (res.ok) cache.put(key, res.clone()); return res; }).catch(() => null);
       return hit || (await net) || new Response("Offline", { status: 503 });
     })
   );

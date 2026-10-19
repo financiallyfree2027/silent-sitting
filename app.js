@@ -526,7 +526,19 @@
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
   }
-  init().catch(err => { $("next").textContent = "The app couldn't start: " + err.message; });
+  // If startup fails (for example a half-updated copy on the phone), clear the saved app files and
+  // reload once from the site. The saved recordings are kept.
+  init().catch(async err => {
+    let healed = false; try { healed = sessionStorage.getItem("healed") === "1"; } catch (e) {}
+    if (!healed && location.protocol !== "file:") {
+      try { sessionStorage.setItem("healed", "1"); } catch (e) {}
+      try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) {}
+      try { for (const k of await caches.keys()) if (k.startsWith("sitting-shell-")) await caches.delete(k); } catch (e) {}
+      location.reload(); return;
+    }
+    $("next").textContent = "The app couldn't start: " + err.message;
+    badge("Error");
+  });
 
   // exposed for tests only
   window.__sitting = { plan: () => plan(), S, setClips: c => { CLIPS = c; } };
