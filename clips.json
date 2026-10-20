@@ -6,10 +6,11 @@
       "title": "Opening chanting",
       "source": "group.mp3",
       "from": 0,
-      "to": 139.4,
+      "to": 145.2,
       "file": "audio/opening-chanting.mp3",
-      "duration": 139.44,
-      "bytes": 1115786
+      "duration": 145.24,
+      "bytes": 1162179,
+      "fadeOut": 1.6
     },
     "anapanaOpen": {
       "title": "Anapana instructions",

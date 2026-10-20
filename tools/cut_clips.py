@@ -45,7 +45,8 @@ def main():
 
         out = os.path.join(ROOT, c["file"])
         os.makedirs(os.path.dirname(out), exist_ok=True)
-        af = f"afade=t=in:st=0:d={FADE},afade=t=out:st={length - FADE:.3f}:d={FADE}"
+        fo = float(c.get("fadeOut", FADE))  # a clip can ask for a longer, gentler fade-out
+        af = f"afade=t=in:st=0:d={FADE},afade=t=out:st={length - fo:.3f}:d={fo}"
         subprocess.run([
             "ffmpeg", "-y", "-v", "error",
             "-ss", f"{start:.3f}", "-t", f"{length:.3f}", "-i", src,
