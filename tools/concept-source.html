@@ -69,7 +69,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-body);display:
   <div class="stage" id="stage">
     <svg id="svg-e1" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Example 1: a harsh word"></svg>
     <svg id="svg-e2" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Example 2: fifteen likes"></svg>
-    <svg id="svg-vp" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anapana, Vipassana and Metta"></svg>
+    <svg id="svg-vp" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anapana, Vipassana and Maitri"></svg>
     <svg id="svg-hi" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="History of Vipassana"></svg>
     <svg id="svg-gu" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lineage of teachers"></svg>
     <svg id="svg-tt" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daily timetable"></svg>
@@ -987,7 +987,7 @@ const V=(()=>{
   const PUR="#8E5CC9",PURt="#F1E9FA",TEA=C.calm,TEAt="#E3F2EF",ORA="#E39A2A",ORAt="#FDF0DC";
   const SEG={A:{y:170,h:229,c:PUR,t:PURt,name:"Anapana",pct:"35%",sub:"watch the breath · Days 1 to 4"},
              V:{y:403,h:392,c:TEA,t:TEAt,name:"Vipassana",pct:"60%",sub:"scan the body · Days 4 to 9"},
-             M:{y:799,h:31,c:ORA,t:ORAt,name:"Metta",pct:"5%",sub:"share goodwill · Day 10"}};
+             M:{y:799,h:31,c:ORA,t:ORAt,name:"Maitri",pct:"5%",sub:"share goodwill · Day 10"}};
   const BX=300,BW=200,CARD={x:120,y:90,w:1360,h:740};
   const mid=k=>SEG[k].y+SEG[k].h/2;
   const arrow=(y)=>`<path d="M520,${y} C560,${y-14} 590,${y-10} 618,${y}" fill="none" stroke="${PUR}" stroke-width="5" stroke-linecap="round"/><path d="M604,${y-12} L620,${y} L604,${y+11}" fill="none" stroke="${PUR}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -1081,7 +1081,7 @@ const V=(()=>{
     <text x="80" y="140" class="t-big" style="font-size:44px">Three techniques, one path</text>
     ${arrow(mid("A"))}${arrow(mid("V"))}${arrow(mid("M"))}
     ${label("A",mid("A")+8,mid("A")+44)}${label("V",mid("V")+8,mid("V")+44)}
-    <text x="640" y="${mid("M")+4}" style="font:800 40px 'Bricolage Grotesque',sans-serif;fill:${ORA}">Metta <tspan style="fill:${C.ink};font-weight:700">· 5%</tspan></text><text x="880" y="${mid("M")+2}" class="t-small" style="font-size:21px">share goodwill · Day 10</text>
+    <text x="640" y="${mid("M")+4}" style="font:800 40px 'Bricolage Grotesque',sans-serif;fill:${ORA}">Maitri <tspan style="fill:${C.ink};font-weight:700">· 5%</tspan></text><text x="880" y="${mid("M")+2}" class="t-small" style="font-size:21px">share goodwill · Day 10</text>
     <text x="1100" y="402" class="t-label">THE 10 DAYS</text>${days}
     <text x="1100" y="488" class="t-small" style="font-size:17px">Split roughly by time spent</text>
     <g id="vp-sum">${[["sharpen",PUR],["balance",TEA],["share",ORA]].map(([t,c],i)=>`<rect x="${1100+i*146}" y="660" width="136" height="44" rx="22" fill="${c}"/><text x="${1168+i*146}" y="689" text-anchor="middle" style="font:800 19px Figtree,sans-serif;fill:#fff">${t}</text>`).join("")}</g>
@@ -1175,7 +1175,7 @@ const V=(()=>{
   svg.querySelectorAll(".vp-seg").forEach(r=>r.addEventListener("click",e=>{const n={A:1,V:7,M:16}[r.dataset.k];if(window.__go&&+getComputedStyle(r).opacity>.5){e.stopPropagation();window.__go(n);}}));
 
   const steps=[
-    {k:"Vipassana",c:"A 10-day course teaches three techniques, one after another. Roughly a third is Anapana, most is Vipassana, and a little is Metta.",b:()=>{}},
+    {k:"Vipassana",c:"A 10-day course teaches three techniques, one after another. Roughly a third is Anapana, most is Vipassana, and a little is Maitri.",b:()=>{}},
     {k:"Anapana",c:"Anapana means awareness of breath. For the first three and a half days, you only watch your natural breath.",b:tl=>openCard(tl,"A")},
     {k:"Anapana · the breath",c:"Attention rests on the small area below the nostrils, above the upper lip. Breath comes in, breath goes out. You just notice it.",b:tl=>{
       tl.to("#vp-A",{opacity:1,duration:.1},0).set("#vp-eleScene",{opacity:0},0).fromTo("#vp-breathe",{opacity:0},{opacity:1,duration:.6},0).to("#vp-inset",{opacity:1,duration:.6},.5);},
@@ -1224,7 +1224,7 @@ const V=(()=>{
       tl.fromTo("#vp-bigburst",{opacity:0,scale:.4,svgOrigin:"0 -46"},{opacity:1,scale:1,duration:.35,ease:"back.out(3)"},0);sliderTo(tl,S,85,.35,"power4.out",.05);
       sliderTo(tl,S,0,1.6,"elastic.out(1,0.35)",.45);tl.to("#vp-bigburst",{opacity:.3,duration:.6},1.4).to("#vp-bal",{opacity:1,duration:.5},1.6);}},
     {k:"Back to the syllabus",c:"The ten days end with one more practice: sharing the peace you have built.",b:tl=>closeCard(tl,"V","#vp-V"),amb:()=>pulseSeg("M")},
-    {k:"Metta",c:"On the last day you learn Metta: sharing goodwill with all beings.",b:tl=>openCard(tl,"M")},
+    {k:"Maitri",c:"On the last day you learn Maitri: sharing goodwill with all beings.",b:tl=>openCard(tl,"M")},
     {k:"Sabka bhala ho",c:"Silently, the meditator wishes: may all beings be happy, may all beings be well.",b:tl=>{
       tl.to("#vp-M",{opacity:1,duration:.6},0).to("#vp-mglow",{opacity:1,duration:.8},.4).fromTo("#vp-bub",{opacity:0,scale:.8,transformOrigin:"20% 80%"},{opacity:1,scale:1,duration:.6,ease:"back.out(1.8)"},1);},
       amb:()=>[gsap.to("#vp-mglow",{attr:{r:160},duration:2.5,yoyo:true,repeat:-1,ease:"sine.inOut"})]},
@@ -1232,7 +1232,7 @@ const V=(()=>{
       [0,1,2,3].forEach(i=>tl.fromTo(`#vp-ring${i}`,{opacity:0,scale:.6,svgOrigin:`${MC[0]} ${MC[1]}`},{opacity:1,scale:1,duration:.9,ease:"power2.out"},i*.8));},
       amb:()=>[gsap.to("#vp-mglow",{attr:{r:160},duration:2.5,yoyo:true,repeat:-1,ease:"sine.inOut"}),gsap.set("#vp-emit",{opacity:1}),
         ...gsap.utils.toArray("#svg-vp .vp-em").map((c,i)=>gsap.fromTo(c,{attr:{r:120},opacity:.8},{attr:{r:520},opacity:0,duration:4,ease:"power1.out",repeat:-1,delay:i*1.33}))]},
-    {k:"The whole path",c:"Anapana sharpens the mind, Vipassana builds equanimity, Metta shares it. That is the 10-day course.",b:tl=>{closeCard(tl,"M","#vp-M");tl.to("#vp-sum",{opacity:1,duration:.6},2);}}
+    {k:"The whole path",c:"Anapana sharpens the mind, Vipassana builds equanimity, Maitri shares it. That is the 10-day course.",b:tl=>{closeCard(tl,"M","#vp-M");tl.to("#vp-sum",{opacity:1,duration:.6},2);}}
   ];
   return {svg,steps,init};
 })();

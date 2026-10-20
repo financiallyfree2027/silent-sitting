@@ -450,7 +450,7 @@
     section = k in SECTIONS ? k : "timer";
     document.querySelectorAll(".navitem").forEach(b => b.setAttribute("aria-current", b.dataset.go === section ? "page" : "false"));
     if (section === "timer") {
-      $("learn").hidden = true; document.body.classList.remove("learning");
+      $("learn").hidden = true; document.body.classList.remove("learning", "learnfull");
       if (!fromHistory && history.state && history.state.learn) history.back();
       draw(); return;
     }
@@ -467,6 +467,13 @@
     draw();
   }
   window.addEventListener("popstate", () => { if (section !== "timer") showSection("timer", true); });
+  // the concept page asks for these: hide the top bar while it is turned sideways, and its own menu/close buttons
+  window.addEventListener("message", e => {
+    if (e.source !== $("learnFrame").contentWindow || !e.data) return;
+    if ("learnFull" in e.data) document.body.classList.toggle("learnfull", !!e.data.learnFull);
+    if (e.data.learnAction === "menu") drawer(true);
+    if (e.data.learnAction === "close") showSection("timer");
+  });
 
   /* ---------------- install as an app ----------------
    A banner under the header and an item in the menu. Android Chrome gets a real Install button;
