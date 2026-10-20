@@ -31,7 +31,7 @@
     A: { dev: "आनापान", hint: "Natural breath at the nostrils, as it comes in and goes out." },
     V: { dev: "विपश्यना", hint: "Sensations through the body, part by part, with equanimity." },
     AV: { dev: "आनापान → विपश्यना", hint: "Settle the mind on the breath, then move to body sensations." },
-    AVM: { dev: "आनापान → विपश्यना → मैत्री", hint: "Breath, then sensations, then close with metta for all beings." },
+    AVM: { dev: "आनापान → विपश्यना → मैत्री", hint: "Breath, then sensations, then close with maitri for all beings." },
   };
 
   const S = Object.assign({ tech: "A", min: 60, chant: true, dark: true },
