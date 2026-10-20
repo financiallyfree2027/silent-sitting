@@ -1,16 +1,38 @@
 {
-  "name": "Silent Sitting",
-  "short_name": "Sitting",
-  "description": "Anapana and Vipassana sitting timer. Instructions at the start, silence in between, closing on time. Works offline.",
+  "name": "Vipassana",
+  "short_name": "Vipassana",
+  "description": "Anapana and Vipassana sitting timer with the concept explained. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#EDEFEA",
-  "theme_color": "#EDEFEA",
+  "background_color": "#111513",
+  "theme_color": "#111513",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "health",
+    "lifestyle"
   ]
 }

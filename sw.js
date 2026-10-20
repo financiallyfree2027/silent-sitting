@@ -2,7 +2,7 @@
  * The recordings live in a separate cache that the app fills when the person taps
  * "Download for offline use", so they survive app updates.
  * Bump CACHE_VERSION whenever you change any app file. */
-const CACHE_VERSION = "v11";
+const CACHE_VERSION = "v12";
 const SHELL_CACHE = "sitting-shell-" + CACHE_VERSION;
 const AUDIO_CACHE = "sitting-audio-v1";
 const SHELL = [

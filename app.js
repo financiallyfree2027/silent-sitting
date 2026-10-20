@@ -249,7 +249,7 @@
     if (!("mediaSession" in navigator)) return;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `${TECH[S.tech].dev} · ${S.min} min`, artist: "Silent Sitting",
+        title: `${TECH[S.tech].dev} · ${S.min} min`, artist: "Vipassana",
         artwork: [{ src: abs("icons/icon-512.png"), sizes: "512x512", type: "image/png" }],
       });
       navigator.mediaSession.playbackState = "playing";
@@ -468,15 +468,46 @@
   }
   window.addEventListener("popstate", () => { if (section !== "timer") showSection("timer", true); });
 
-  /* ---------------- install prompt ---------------- */
+  /* ---------------- install as an app ----------------
+   A banner under the header and an item in the menu. Android Chrome gets a real Install button;
+   iPhone, in-app browsers (WhatsApp, Instagram…) and other browsers get the right instructions. */
   let installEvt = null;
-  window.addEventListener("beforeinstallprompt", e => {
-    e.preventDefault(); installEvt = e;
-    $("installHint").innerHTML = '<button class="link" id="installBtn">Install as an app on this device</button>';
-    $("installBtn").onclick = async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; $("installHint").hidden = true; };
-  });
-  if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) $("installHint").hidden = true;
-  else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) $("installHint").textContent = "Tip: tap Share, then Add to Home Screen, so it opens like an app.";
+  const UA = navigator.userAgent;
+  const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const isIOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(UA);
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|; wv\)|GSA\//.test(UA);
+  function installHelp() {
+    if (installEvt) return { text: "Install Vipassana on this phone. It opens like an app and works offline.", action: "Install" };
+    if (inApp) return { text: "To install, open this page in " + (isIOS ? "Safari" : "Chrome") + ": tap ⋮ or the share icon, then “Open in browser”.", action: "Copy link" };
+    if (isIOS) return { text: "To install: tap the Share button, then “Add to Home Screen”." };
+    if (isAndroid) return { text: "To install: open the browser menu ⋮ and tap “Install app” or “Add to Home screen”." };
+    return null;
+  }
+  function renderInstall() {
+    const box = $("installBar"), h = installHelp();
+    const show = h && !standalone() && !store.get("installDismissed", false);
+    box.hidden = !show;
+    $("installNav").hidden = !h || standalone();
+    if (!show) return;
+    $("installText").textContent = h.text;
+    $("installGo").hidden = !h.action; $("installGo").textContent = h.action || "";
+  }
+  async function doInstall() {
+    if (installEvt) {
+      installEvt.prompt();
+      const r = await installEvt.userChoice.catch(() => null);
+      installEvt = null;
+      if (r && r.outcome === "accepted") store.set("installDismissed", true);
+      renderInstall(); return;
+    }
+    if (inApp) {
+      try { await navigator.clipboard.writeText(location.href); $("installText").textContent = "Link copied. Paste it into " + (isIOS ? "Safari" : "Chrome") + " to install."; }
+      catch (e) { $("installText").textContent = location.href; }
+    }
+  }
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; store.set("installDismissed", false); renderInstall(); });
+  window.addEventListener("appinstalled", () => { installEvt = null; store.set("installDismissed", true); renderInstall(); });
 
   /* ---------------- wiring ---------------- */
   function wire() {
@@ -505,6 +536,10 @@
     sk.addEventListener("input", () => { seeking = true; paintSeek(); $("time").textContent = fmt(P.T - +sk.value); });
     sk.addEventListener("change", () => { seeking = false; seekTo(+sk.value); });
     sk.addEventListener("pointerup", () => { if (seeking) { seeking = false; seekTo(+sk.value); } });
+    $("installGo").onclick = doInstall;
+    $("installX").onclick = () => { store.set("installDismissed", true); renderInstall(); };
+    $("installNav").onclick = () => { drawer(false); store.set("installDismissed", false); renderInstall();
+      if (installEvt) doInstall(); else $("installBar").scrollIntoView({ block: "center" }); };
     $("offbadge").onclick = () => { if ($("offbadge").classList.contains("act")) download(); };
     window.addEventListener("online", renderOffline);
     window.addEventListener("offline", renderOffline);
@@ -520,7 +555,7 @@
     try { res = await fetch(abs("clips.json"), { cache: "no-cache" }); if (!res.ok) throw 0; }
     catch (e) { res = await caches.match(abs("clips.json")); if (!res) throw new Error("clips.json is missing"); }
     CLIPS = (await res.json()).clips;
-    wire(); render(); await renderOffline();
+    wire(); render(); renderInstall(); await renderOffline();
     autoDownload();
     if ("serviceWorker" in navigator && location.protocol !== "file:") {
       navigator.serviceWorker.register("sw.js").catch(() => {});
