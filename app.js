@@ -32,6 +32,7 @@
     V: { dev: "विपश्यना", hint: "Sensations through the body, part by part, with equanimity." },
     AV: { dev: "आनापान → विपश्यना", hint: "Settle the mind on the breath, then move to body sensations." },
     AVM: { dev: "आनापान → विपश्यना → मैत्री", hint: "Breath, then sensations, then close with maitri for all beings." },
+    FULL: { dev: "पुराने साधक · पूर्ण निर्देश", hint: "The complete recorded sitting with Goenkaji's instructions, about 45 minutes." },
   };
 
   const S = Object.assign({ tech: "A", min: 60, chant: true, dark: true },
@@ -41,6 +42,10 @@
 
   /* ---------------- plan ---------------- */
   function plan() {
+    if (S.tech === "FULL") {
+      const len = CLIPS.full.duration, T = Math.round(len);
+      return { T, segs: [{ type: "clip", key: "full", start: 0, len }], endStart: T, bad: false, needMin: 0, fixed: true };
+    }
     const T = S.min * 60, segs = [];
     const openKey = S.tech === "V" ? "vipassanaOpen" : "anapanaOpen";
     // every sitting ends with the blessing, just before the bells
@@ -131,9 +136,44 @@
     CLIPS[key].duration = buf.duration; // trust the real file over clips.json
     return buf;
   }
+  /* Long recordings (the 45-minute full instructions) stream through an audio element instead of being
+     decoded into memory, which would need about 260 MB on a phone. The file comes from the saved copy
+     as a blob, so it plays offline and seeks on every phone. */
+  let media = null, mediaKey = null, mediaURL = null, endAt = null;
+  async function loadMedia(key) {
+    if (mediaKey === key && media) return media;
+    const blob = await (await getResponse(abs(CLIPS[key].file))).blob();
+    if (mediaURL) URL.revokeObjectURL(mediaURL);
+    mediaURL = URL.createObjectURL(blob);
+    if (!media) {
+      media = new Audio(); media.preload = "auto";
+      media.addEventListener("ended", () => {
+        if (!running || !P.fixed) return;
+        endAt = ctx.currentTime; // the bells ring after the recording ends
+        BOWLS.forEach(b => bowl(endAt + b.at, b.gain));
+      });
+      media.addEventListener("pause", () => { // paused by the phone (a call, headphones unplugged)
+        if (running && P.fixed && !paused && !media.ended && !seekingMedia) { paused = true; showPaused(); }
+      });
+    }
+    media.src = mediaURL; mediaKey = key;
+    await new Promise((ok, no) => { media.onloadedmetadata = ok; media.onerror = () => no(new Error("media")); media.load(); });
+    CLIPS[key].duration = media.duration;
+    return media;
+  }
+  let seekingMedia = false;
+  const loadClip = k => CLIPS[k].stream ? loadMedia(k) : loadBuffer(k);
   function stopSources() { sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = []; }
   function schedule(from) {
     stopSources();
+    if (P.fixed) {
+      endAt = null;
+      seekingMedia = true; media.currentTime = Math.min(from, media.duration - 0.05);
+      media.play().catch(() => {}).finally(() => { seekingMedia = false; });
+      if (from >= P.T - 0.05) { endAt = ctx.currentTime; BOWLS.forEach(b => bowl(endAt + b.at, b.gain)); }
+      return;
+    }
+    if (media) media.pause();
     const now = ctx.currentTime + 0.08;
     t0 = now - from;
     for (const s of P.segs) {
@@ -164,7 +204,9 @@
       });
     });
   }
-  const elapsed = () => running ? Math.min(P.T + END_LEN, Math.max(0, ctx.currentTime - t0)) : startAt;
+  const elapsed = () => !running ? startAt
+    : P.fixed ? (endAt !== null ? Math.min(P.T + END_LEN, P.T + ctx.currentTime - endAt) : media.currentTime)
+    : Math.min(P.T + END_LEN, Math.max(0, ctx.currentTime - t0));
   let startAt = 0, seeking = false;
 
   async function begin() {
@@ -174,10 +216,11 @@
     $("play").classList.add("busy"); $("play").disabled = true; $("playLabel").textContent = "Preparing";
     $("next").textContent = "Preparing the recordings…";
     try {
-      for (const k of neededKeys()) await loadBuffer(k);
+      for (const k of neededKeys()) await loadClip(k);
     } catch (e) {
       $("play").classList.remove("busy"); $("play").disabled = false; $("playLabel").textContent = "Begin";
       $("next").textContent = noSiteAudio ? "The recordings aren't on this site, so there is nothing to play yet."
+        : neededKeys().some(k => missing.has(k)) ? "This recording isn't on the site yet. Pick another option for now."
         : navigator.onLine ? "Couldn't load the recordings. Tap the badge above to try saving them again."
         : "The recordings aren't saved on this device yet. Open the app once with internet.";
       return;
@@ -195,7 +238,7 @@
     loop();
   }
   async function pause() {
-    paused = true; await ctx.suspend(); showPaused();
+    paused = true; if (media) media.pause(); await ctx.suspend(); showPaused();
   }
   function showPaused() {
     cancelAnimationFrame(raf); setPlayIcon(false); $("playLabel").textContent = "Resume";
@@ -203,7 +246,8 @@
     try { navigator.mediaSession.playbackState = "paused"; } catch (e) {}
   }
   async function resume() {
-    await ctx.resume(); paused = false; document.body.classList.remove("paused");
+    await ctx.resume(); paused = false;
+    if (P.fixed && endAt === null) { seekingMedia = true; media.play().catch(() => {}).finally(() => { seekingMedia = false; }); } document.body.classList.remove("paused");
     setPlayIcon(true); $("playLabel").textContent = "Pause"; requestWake();
     try { navigator.mediaSession.playbackState = "playing"; } catch (e) {}
     loop();
@@ -218,7 +262,8 @@
   }
   function finish(done) {
     cancelAnimationFrame(raf);
-    stopSources();
+    stopSources(); endAt = null;
+    if (media) { seekingMedia = true; media.pause(); seekingMedia = false; }
     try { keepAlive && keepAlive.stop(); } catch (e) {} keepAlive = null;
     running = false; paused = false; startAt = 0;
     if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
@@ -249,7 +294,7 @@
     if (!("mediaSession" in navigator)) return;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `${TECH[S.tech].dev} · ${S.min} min`, artist: "Vipassana",
+        title: `${TECH[S.tech].dev} · ${Math.round(P.T / 60)} min`, artist: "Vipassana",
         artwork: [{ src: abs("icons/icon-512.png"), sizes: "512x512", type: "image/png" }],
       });
       navigator.mediaSession.playbackState = "playing";
@@ -289,6 +334,7 @@
       const nx = P.segs.find(s => s.type === "clip" && s.start > e + 1);
       $("next").innerHTML = bells ? "Sitting complete. भवतु सब्ब मङ्गलं"
         : nx ? `Next: <b>${CLIPS[nx.key].title}</b> in ${fmt(nx.start - e)}`
+        : live && P.fixed ? "Goenkaji's full instructions. Sit with the recording."
         : live ? "Closing. Sit until it ends." : "Closing comes next.";
       $("skip").disabled = !nx || bells;
       document.querySelectorAll("#plan li").forEach(li => li.classList.toggle("now", +li.dataset.i === i));
@@ -330,9 +376,15 @@
     if (apply) P = np;
     $("tech").value = S.tech;
     $("techhint").innerHTML = `<b>${TECH[S.tech].dev}</b>${TECH[S.tech].hint}`;
-    document.querySelectorAll("#chips .chip").forEach(c => c.setAttribute("aria-pressed", +c.dataset.min === S.min));
-    $("mins").textContent = S.min + " min";
-    $("chant").checked = S.chant;
+    const fixed = !!np.fixed;
+    document.querySelectorAll("#chips .chip").forEach(c => c.setAttribute("aria-pressed", !fixed && +c.dataset.min === S.min));
+    document.querySelectorAll("#chips button").forEach(b => b.disabled = fixed);
+    $("chips").classList.toggle("fixed", fixed);
+    $("mins").textContent = (fixed ? Math.round(np.T / 60) : S.min) + " min";
+    $("fixedNote").hidden = !fixed;
+    $("chant").checked = S.chant && !fixed; $("chant").disabled = fixed;
+    $("chantRow").classList.toggle("off", fixed);
+    showSelected();
     $("chantLen").textContent = `Opening chanting, ${fmt(CLIPS.chant.duration)}, before the instructions`;
     $("warn").hidden = !np.bad;
     $("warn").textContent = np.bad ? `This combination needs at least ${np.needMin} minutes.${running ? " The current sitting carries on unchanged." : ""}` : "";
@@ -346,7 +398,7 @@
   let applying = 0;
   async function applyMidSitting() {
     const ticket = ++applying, pos = elapsed();
-    try { for (const k of neededKeys()) await loadBuffer(k); } catch (e) { return; }
+    try { for (const k of neededKeys()) await loadClip(k); } catch (e) { return; }
     if (ticket !== applying || !running) return;
     P = plan(); buildArcs(); renderPlan(); $("seek").max = Math.round(P.T);
     schedule(Math.min(pos, P.endStart)); // a shorter sitting that has already passed its silence goes straight to the closing
@@ -362,10 +414,30 @@
     if (typeof learnLoaded !== "undefined" && learnLoaded) postSection(section);
   }
 
+  /* The chosen technique, shown over the dropdown; a name too long for the box scrolls slowly. */
+  function showSelected() {
+    const box = $("selval"), opt = $("tech").selectedOptions[0];
+    if (!box || !opt) return;
+    const t = opt.textContent;
+    box.classList.remove("marq");
+    box.innerHTML = `<span class="selin"><span></span></span>`;
+    box.querySelector(".selin span").textContent = t;
+    requestAnimationFrame(() => {
+      const inner = box.querySelector(".selin");
+      if (inner.scrollWidth <= box.clientWidth + 1) return;
+      inner.innerHTML = "<span></span><span aria-hidden=\"true\"></span>";
+      inner.querySelectorAll("span").forEach(sp => sp.textContent = t);
+      box.style.setProperty("--dur", Math.max(8, inner.scrollWidth / 2 / 28) + "s"); // about 28px a second
+      box.classList.add("marq");
+    });
+  }
+  window.addEventListener("resize", () => showSelected());
+
   /* ---------------- offline audio ----------------
    The recordings save themselves into the browser on the first online visit. Progress and
    status show in the small badge on the player; tapping the badge retries if a save failed. */
   let noSiteAudio = false, saving = false;
+  const missing = new Set(); // clips not on the site (for example a recording not uploaded yet)
   const allFiles = () => Object.values(CLIPS);
   const totalBytes = () => allFiles().reduce((a, c) => a + c.bytes, 0);
   async function savedStatus() {
@@ -373,6 +445,7 @@
     const cache = await caches.open(AUDIO_CACHE);
     const out = {};
     for (const [k, c] of Object.entries(CLIPS)) {
+      if (missing.has(k)) continue;
       const hit = await cache.match(abs(c.file));
       out[k] = !!hit && +(hit.headers.get("X-Clip-Bytes") || 0) === c.bytes;
     }
@@ -403,9 +476,9 @@
     try {
       try { await navigator.storage?.persist?.(); } catch (e) {}
       const cache = await caches.open(AUDIO_CACHE);
-      for (const c of allFiles()) {
+      for (const [k, c] of Object.entries(CLIPS)) {
         const res = await fetch(abs(c.file), { cache: "reload" });
-        if (res.status === 404) throw new Error("not-on-site");
+        if (res.status === 404) { missing.add(k); got += c.bytes; show(); continue; }
         if (!res.ok) throw new Error(res.status);
         const chunks = [];
         if (res.body && res.body.getReader) {
@@ -415,9 +488,8 @@
         const blob = new Blob(chunks, { type: "audio/mpeg" });
         await cache.put(abs(c.file), new Response(blob, { headers: { "Content-Type": "audio/mpeg", "Content-Length": String(blob.size), "X-Clip-Bytes": String(c.bytes) } }));
       }
-    } catch (e) {
-      if (e.message === "not-on-site") noSiteAudio = true;
-    }
+    } catch (e) {}
+    noSiteAudio = missing.size === Object.keys(CLIPS).length;
     saving = false;
     await renderOffline();
   }

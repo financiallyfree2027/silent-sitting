@@ -75,7 +75,9 @@
             <option value="V">Vipassana — observe sensations</option>
             <option value="AV">Anapana, then Vipassana</option>
             <option value="AVM">Anapana, Vipassana, then Maitri</option>
+            <option value="FULL">Old Students Full Instructions 45 minutes</option>
           </select>
+          <span class="selval" id="selval" aria-hidden="true"></span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </div>
         <p class="techhint" id="techhint"></p>
@@ -92,7 +94,8 @@
       </div>
 
 
-      <label class="toggle" for="chant">
+      <p class="fixednote" id="fixedNote" hidden>This option plays the complete recording, so its length is fixed.</p>
+      <label class="toggle" id="chantRow" for="chant">
         <span><b>Begin with chanting</b><small id="chantLen"></small></span>
         <input type="checkbox" id="chant" role="switch">
       </label>
