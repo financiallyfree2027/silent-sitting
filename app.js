@@ -294,7 +294,7 @@
     if (!("mediaSession" in navigator)) return;
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `${TECH[S.tech].dev} · ${Math.round(P.T / 60)} min`, artist: "Vipassana",
+        title: `${TECH[S.tech].dev} · ${Math.floor(P.T / 60)} min`, artist: "Vipassana",
         artwork: [{ src: abs("icons/icon-512.png"), sizes: "512x512", type: "image/png" }],
       });
       navigator.mediaSession.playbackState = "playing";
@@ -380,7 +380,7 @@
     document.querySelectorAll("#chips .chip").forEach(c => c.setAttribute("aria-pressed", !fixed && +c.dataset.min === S.min));
     document.querySelectorAll("#chips button").forEach(b => b.disabled = fixed);
     $("chips").classList.toggle("fixed", fixed);
-    $("mins").textContent = (fixed ? Math.round(np.T / 60) : S.min) + " min";
+    $("mins").textContent = (fixed ? Math.floor(np.T / 60) : S.min) + " min";
     $("fixedNote").hidden = !fixed;
     $("chant").checked = S.chant && !fixed; $("chant").disabled = fixed;
     $("chantRow").classList.toggle("off", fixed);
@@ -476,7 +476,9 @@
     try {
       try { await navigator.storage?.persist?.(); } catch (e) {}
       const cache = await caches.open(AUDIO_CACHE);
+      const have = await savedStatus().catch(() => ({})) || {};
       for (const [k, c] of Object.entries(CLIPS)) {
+        if (have[k]) { got += c.bytes; show(); continue; } // already saved on this phone
         const res = await fetch(abs(c.file), { cache: "reload" });
         if (res.status === 404) { missing.add(k); got += c.bytes; show(); continue; }
         if (!res.ok) throw new Error(res.status);

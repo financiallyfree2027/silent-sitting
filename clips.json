@@ -69,12 +69,13 @@
     "full": {
       "title": "Full instructions",
       "source": "oldstudents.mp3",
-      "from": 0,
-      "to": null,
+      "from": 7.0,
+      "to": 2738.5,
       "file": "audio/old-students-45.mp3",
-      "duration": 2700,
-      "bytes": 0,
-      "stream": true
+      "duration": 2731.55,
+      "bytes": 21852621,
+      "stream": true,
+      "fadeOut": 1.5
     }
   }
 }
